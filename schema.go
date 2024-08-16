@@ -1,4 +1,4 @@
-package erqi_cache
+package cache
 
 import "time"
 

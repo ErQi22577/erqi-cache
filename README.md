@@ -46,7 +46,6 @@ package main
 import (
 	"fmt"
 	"github.com/ErQi22577/erqi-cache"
-	"runtime/pprof"
 	"time"
 )
 

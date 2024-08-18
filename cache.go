@@ -62,12 +62,14 @@ func New(config Config) *Cache {
 	c.defaultExpiration = config.DefaultExpiration
 	c.ll = &list.List{}
 	var m database
+	shardCount := ShardCount
 	if config.ShardCount > 0 {
+		shardCount = config.ShardCount
 		m = make(database, config.ShardCount)
 	} else {
 		m = make(database, ShardCount)
 	}
-	for i := 0; i < ShardCount; i++ {
+	for i := 0; i < shardCount; i++ {
 		m[i] = &SharedMap{
 			m: make(map[string]*atomic.Value),
 		}

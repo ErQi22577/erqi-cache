@@ -161,12 +161,15 @@ func (c *cache) Add(k string, x any, d time.Duration, overWrite bool) error {
 	sharedMap.Lock()
 	_, found := sharedMap.m[k]
 	if found && !overWrite {
+		sharedMap.Unlock()
 		return fmt.Errorf("Item %s already exists\n", k)
 	}
 	sharedMap.m[k] = &atomic.Value{}
-	sizeBefore := int(unsafe.Sizeof(sharedMap))
+	mk := sharedMap.m[k]
+	sharedMap.Unlock()
 	ele := c.ll.PushFront(k)
-	sharedMap.m[k].Store(&Item{
+	sizeBefore := int(unsafe.Sizeof(sharedMap))
+	mk.Store(&Item{
 		V:          x,
 		Ele:        ele,
 		IsDeleted:  false,
@@ -175,7 +178,6 @@ func (c *cache) Add(k string, x any, d time.Duration, overWrite bool) error {
 		UpdateTime: time.Now().UnixNano(),
 	})
 	sizeAfter := int(unsafe.Sizeof(sharedMap))
-	sharedMap.Unlock()
 	c.nowBytes += sizeAfter - sizeBefore
 	return nil
 }
@@ -186,12 +188,19 @@ func (c *cache) Delete(k string) {
 	sharedMap.Lock()
 	v, found := sharedMap.m[k]
 	if found {
-		item := v.Load().(*Item)
+		item, ok := v.Load().(*Item)
+		if !ok {
+			sharedMap.Unlock()
+			return
+		}
 		c.ll.Remove(item.Ele)
 		delete(sharedMap.m, k)
+		c.onEvicted(k, v.Load().(*Item).V)
+		sharedMap.Unlock()
+	} else {
+		sharedMap.Unlock()
+		return
 	}
-	sharedMap.Unlock()
-	c.onEvicted(k, v.Load().(*Item).V)
 }
 
 // UnsafeDelete only modifies item.IsDeleted to make it invisible.
@@ -536,7 +545,11 @@ func (c *cache) get4Get(k string) (*Item, bool) {
 		sharedMap.RUnlock()
 		return nil, false
 	}
-	item := v.Load().(*Item)
+	item, ok := v.Load().(*Item)
+	if !ok {
+		sharedMap.RUnlock()
+		return nil, false
+	}
 	c.ll.MoveToFront(item.Ele)
 	if item.IsDeleted {
 		sharedMap.RUnlock()
@@ -558,7 +571,11 @@ func (c *cache) get4update(k string) (*Item, bool) {
 		sharedMap.RUnlock()
 		return nil, false
 	}
-	item := v.Load().(*Item)
+	item, ok := v.Load().(*Item)
+	if !ok {
+		sharedMap.RUnlock()
+		return nil, false
+	}
 	c.ll.MoveToFront(item.Ele)
 	sharedMap.RUnlock()
 	return item, true

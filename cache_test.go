@@ -2,7 +2,9 @@ package cache
 
 import (
 	"fmt"
-	_ "net/http/pprof"
+	//goCache "github.com/patrickmn/go-cache"
+	"strconv"
+	"sync"
 	"testing"
 	"time"
 )
@@ -247,6 +249,96 @@ func getTestCache() *Cache {
 	_ = c.Add("test_float", 1.1, 0, true)
 	return c
 }
+
+func BenchmarkCache(b *testing.B) {
+	c := New(Config{ShardCount: 256})
+	b.StartTimer()
+	var wg sync.WaitGroup
+	wg.Add(100001)
+	go func() {
+		defer wg.Done()
+		for i := 0; i < 100000; i++ {
+			tmp := i
+			go func() {
+				defer wg.Done()
+				_ = c.Add(strconv.Itoa(tmp), "abcdefghijklmnopqrstuvwxyz", 0, false)
+			}()
+		}
+	}()
+	wg.Wait()
+	wg.Add(200002)
+	go func() {
+		defer wg.Done()
+		for i := 0; i < 100000; i++ {
+			tmp := i
+			go func() {
+				defer wg.Done()
+				_ = c.Update(strconv.Itoa(tmp), "abcdefghijklmnopqrstuvw")
+			}()
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		for i := 0; i < 100000; i++ {
+			tmp := i
+			go func() {
+				defer wg.Done()
+				_, found := c.Get(strconv.Itoa(tmp))
+				if found {
+					//fmt.Println(i)
+				}
+			}()
+		}
+	}()
+	wg.Wait()
+	b.StopTimer()
+}
+
+//func BenchmarkGoCache(b *testing.B) {
+//	c := goCache.New(time.Duration(0)*time.Second, time.Duration(0)*time.Second)
+//	b.StartTimer()
+//	var wg sync.WaitGroup
+//	wg.Add(100001)
+//	go func() {
+//		defer wg.Done()
+//		for i := 0; i < 100000; i++ {
+//			go func() {
+//				defer wg.Done()
+//				_ = c.Add(strconv.Itoa(i), "abcdefghijklmnopqrstuvwxyz", 0)
+//			}()
+//		}
+//	}()
+//	wg.Wait()
+//	wg.Add(200002)
+//
+//	go func() {
+//		defer wg.Done()
+//		for i := 0; i < 100000; i++ {
+//			go func() {
+//				defer wg.Done()
+//				c.Set(strconv.Itoa(i), "abcdefghijklmnopqrstuvw", 0)
+//			}()
+//		}
+//	}()
+//	go func() {
+//		defer wg.Done()
+//		for i := 0; i < 100000; i++ {
+//			go func() {
+//				defer wg.Done()
+//				_, found := c.Get(strconv.Itoa(i))
+//				if found {
+//					//fmt.Println(i)
+//				}
+//			}()
+//		}
+//	}()
+//	wg.Wait()
+//	b.StopTimer()
+//	//for i := 0; i < 1000000; i++ {
+//	//	c.Set(strconv.Itoa(i), "abcdefghijklmnopqrstuvwxyz", 0)
+//	//}
+//
+//}
 
 func getTestData() map[string]Item {
 	c := New(Config{

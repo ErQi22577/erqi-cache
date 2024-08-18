@@ -33,6 +33,7 @@ type cache struct {
 	CleanupJanitor    *Janitor
 	SavingJanitor     *Janitor
 	ll                *list.List
+	shardCount        int
 	maxBytes          int
 	nowBytes          int
 	onEvicted         func(key string, value any)
@@ -62,14 +63,14 @@ func New(config Config) *Cache {
 	c.defaultExpiration = config.DefaultExpiration
 	c.ll = &list.List{}
 	var m database
-	shardCount := ShardCount
 	if config.ShardCount > 0 {
-		shardCount = config.ShardCount
+		c.shardCount = config.ShardCount
 		m = make(database, config.ShardCount)
 	} else {
+		c.shardCount = ShardCount
 		m = make(database, ShardCount)
 	}
-	for i := 0; i < shardCount; i++ {
+	for i := 0; i < c.shardCount; i++ {
 		m[i] = &SharedMap{
 			m: make(map[string]*atomic.Value),
 		}
@@ -440,7 +441,7 @@ func (c *cache) CacheSize() int { return c.nowBytes }
 // GetShardMap return key's SharedMap.
 // It is not recommended to directly operate SharedMap.
 func (c *cache) GetShardMap(key string) *SharedMap {
-	return c.database[uint(c.fnv32(key))%uint(ShardCount)]
+	return c.database[uint(c.fnv32(key))%uint(c.shardCount)]
 }
 
 func (c *cache) fnv32(key string) uint32 {

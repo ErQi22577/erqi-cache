@@ -156,7 +156,7 @@ func TestCache_Increment_Decrement(t *testing.T) {
 	t.Run("IncrementFloat data from cache.", func(t *testing.T) {
 		c := getTestCache()
 		fmt.Println(c.Get("test_float"))
-		_ = c.Increment("test_float", 1.2)
+		_ = c.IncrementFloat("test_float", 1.2)
 		fmt.Println(c.Get("test_float"))
 		c = nil
 	})
@@ -164,7 +164,7 @@ func TestCache_Increment_Decrement(t *testing.T) {
 	t.Run("DecrementFloat data from cache.", func(t *testing.T) {
 		c := getTestCache()
 		fmt.Println(c.Get("test_float"))
-		_ = c.Decrement("test_float", 1.2)
+		_ = c.DecrementFloat("test_float", 1.)
 		fmt.Println(c.Get("test_float"))
 		c = nil
 	})
@@ -253,7 +253,7 @@ func getTestData() map[string]Item {
 		DefaultExpiration: time.Duration(0) * time.Second,
 		CleanupInterval:   time.Duration(0) * time.Second,
 		SavingInterval:    time.Duration(0) * time.Second,
-		ShardCount:        0,
+		ShardCount:        2,
 		MaxBytes:          0,
 	})
 	_ = c.Add("test", "ok", 0, true)

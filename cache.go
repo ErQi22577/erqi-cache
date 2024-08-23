@@ -60,8 +60,10 @@ type Item struct {
 func New(config Config) *Cache {
 	c := &cache{}
 	C := &Cache{c}
-	c.defaultExpiration = config.DefaultExpiration
+
 	c.ll = &list.List{}
+	c.defaultExpiration = config.DefaultExpiration
+
 	var m database
 	if config.ShardCount > 0 {
 		c.shardCount = config.ShardCount
@@ -76,11 +78,13 @@ func New(config Config) *Cache {
 		}
 	}
 	c.database = m
+
 	if config.MaxBytes > 0 {
 		c.maxBytes = config.MaxBytes
 	} else {
 		c.maxBytes = MaxBytes
 	}
+
 	if config.CleanupInterval > 0 {
 		j := &Janitor{
 			Interval: config.CleanupInterval,
@@ -99,6 +103,7 @@ func New(config Config) *Cache {
 		c.SavingJanitor = j
 		go c.RunJanitor(Saving)
 	}
+
 	runtime.SetFinalizer(C, (*Cache).finalizer)
 	return C
 }
@@ -133,11 +138,13 @@ func (c *cache) ItemsInit(items map[string]Item) {
 	for k, v := range items {
 		sharedMap := c.GetShardMap(k)
 		sharedMap.Lock()
+
 		sharedMap.m[k] = &atomic.Value{}
 		ele := c.ll.PushFront(k)
 		v.Ele = ele
 		sharedMap.m[k].Store(&v)
 		c.nowBytes += int(unsafe.Sizeof(sharedMap))
+
 		sharedMap.Unlock()
 	}
 }
@@ -148,9 +155,11 @@ func (c *cache) Flush() {
 	for i, n := 0, len(c.database); i < n; i++ {
 		old := c.database[i]
 		old.Lock()
+
 		c.database[i] = &SharedMap{
 			m: make(map[string]*atomic.Value),
 		}
+
 		old.Unlock()
 	}
 }
@@ -159,14 +168,17 @@ func (c *cache) Flush() {
 func (c *cache) Add(k string, x any, d time.Duration, overWrite bool) error {
 	sharedMap := c.GetShardMap(k)
 	sharedMap.Lock()
+
 	_, found := sharedMap.m[k]
 	if found && !overWrite {
 		sharedMap.Unlock()
 		return fmt.Errorf("Item %s already exists\n", k)
 	}
+
 	sharedMap.m[k] = &atomic.Value{}
 	mk := sharedMap.m[k]
 	sharedMap.Unlock()
+
 	ele := c.ll.PushFront(k)
 	sizeBefore := int(unsafe.Sizeof(sharedMap))
 	mk.Store(&Item{
@@ -179,6 +191,7 @@ func (c *cache) Add(k string, x any, d time.Duration, overWrite bool) error {
 	})
 	sizeAfter := int(unsafe.Sizeof(sharedMap))
 	c.nowBytes += sizeAfter - sizeBefore
+
 	return nil
 }
 
@@ -186,6 +199,7 @@ func (c *cache) Add(k string, x any, d time.Duration, overWrite bool) error {
 func (c *cache) Delete(k string) {
 	sharedMap := c.GetShardMap(k)
 	sharedMap.Lock()
+
 	v, found := sharedMap.m[k]
 	if found {
 		item, ok := v.Load().(*Item)
@@ -193,6 +207,7 @@ func (c *cache) Delete(k string) {
 			sharedMap.Unlock()
 			return
 		}
+
 		c.ll.Remove(item.Ele)
 		delete(sharedMap.m, k)
 		c.onEvicted(k, v.Load().(*Item).V)
@@ -469,15 +484,19 @@ func (c *cache) clean() {
 		k := ele.Value.(string)
 		sharedMap := c.GetShardMap(k)
 		sharedMap.RLock()
+
 		v, found := sharedMap.m[k]
 		sharedMap.RUnlock()
+
 		if found {
 			item := v.Load().(*Item)
 			if item.IsDeleted || (time.Now().UnixNano() > item.Expiration && item.Expiration != 0) {
 				sizeBefore := int(unsafe.Sizeof(sharedMap))
 				sharedMap.Lock()
+
 				delete(sharedMap.m, k)
 				sharedMap.Unlock()
+
 				c.onEvicted(k, item.V)
 				sizeAfter := int(unsafe.Sizeof(sharedMap))
 				c.nowBytes -= sizeBefore - sizeAfter
@@ -540,25 +559,30 @@ func (c *cache) calExpiration(d time.Duration) int64 {
 func (c *cache) get4Get(k string) (*Item, bool) {
 	sharedMap := c.GetShardMap(k)
 	sharedMap.RLock()
+
 	v, found := sharedMap.m[k]
 	if !found {
 		sharedMap.RUnlock()
 		return nil, false
 	}
+
 	item, ok := v.Load().(*Item)
 	if !ok {
 		sharedMap.RUnlock()
 		return nil, false
 	}
+
 	c.ll.MoveToFront(item.Ele)
 	if item.IsDeleted {
 		sharedMap.RUnlock()
 		return item, false
 	}
+
 	if item.Expiration > 0 && time.Now().UnixNano() > item.Expiration {
 		sharedMap.RUnlock()
 		return nil, false
 	}
+
 	sharedMap.RUnlock()
 	return item, true
 }
@@ -566,18 +590,22 @@ func (c *cache) get4Get(k string) (*Item, bool) {
 func (c *cache) get4update(k string) (*Item, bool) {
 	sharedMap := c.GetShardMap(k)
 	sharedMap.RLock()
+
 	v, found := sharedMap.m[k]
 	if !found {
 		sharedMap.RUnlock()
 		return nil, false
 	}
+
 	item, ok := v.Load().(*Item)
 	if !ok {
 		sharedMap.RUnlock()
 		return nil, false
 	}
+
 	c.ll.MoveToFront(item.Ele)
 	sharedMap.RUnlock()
+
 	return item, true
 }
 

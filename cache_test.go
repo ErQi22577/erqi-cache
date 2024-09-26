@@ -294,51 +294,47 @@ func BenchmarkCache(b *testing.B) {
 	b.StopTimer()
 }
 
-func BenchmarkGoCache(b *testing.B) {
-	c := goCache.New(time.Duration(0)*time.Second, time.Duration(0)*time.Second)
-	b.StartTimer()
-	var wg sync.WaitGroup
-	wg.Add(1001)
-	go func() {
-		defer wg.Done()
-		for i := 0; i < 1000; i++ {
-			go func() {
-				defer wg.Done()
-				_ = c.Add(strconv.Itoa(i), "abcdefghijklmnopqrstuvwxyz", 0)
-			}()
-		}
-	}()
-	wg.Wait()
-	wg.Add(2002)
-
-	go func() {
-		defer wg.Done()
-		for i := 0; i < 1000; i++ {
-			go func() {
-				defer wg.Done()
-				c.Set(strconv.Itoa(i), "abcdefghijklmnopqrstuvw", 0)
-			}()
-		}
-	}()
-	go func() {
-		defer wg.Done()
-		for i := 0; i < 1000; i++ {
-			go func() {
-				defer wg.Done()
-				_, found := c.Get(strconv.Itoa(i))
-				if found {
-					//fmt.Println(i)
-				}
-			}()
-		}
-	}()
-	wg.Wait()
-	b.StopTimer()
-	//for i := 0; i < 1000000; i++ {
-	//	c.Set(strconv.Itoa(i), "abcdefghijklmnopqrstuvwxyz", 0)
-	//}
-
-}
+//func BenchmarkGoCache(b *testing.B) {
+//	c := goCache.New(time.Duration(0)*time.Second, time.Duration(0)*time.Second)
+//	b.StartTimer()
+//	var wg sync.WaitGroup
+//	wg.Add(1001)
+//	go func() {
+//		defer wg.Done()
+//		for i := 0; i < 1000; i++ {
+//			go func(i int) {
+//				defer wg.Done()
+//				_ = c.Add(strconv.Itoa(i), "abcdefghijklmnopqrstuvwxyz", 0)
+//			}(i)
+//		}
+//	}()
+//	wg.Wait()
+//	wg.Add(2002)
+//
+//	go func() {
+//		defer wg.Done()
+//		for i := 0; i < 1000; i++ {
+//			go func(i int) {
+//				defer wg.Done()
+//				c.Set(strconv.Itoa(i), "abcdefghijklmnopqrstuvw", 0)
+//			}(i)
+//		}
+//	}()
+//	go func() {
+//		defer wg.Done()
+//		for i := 0; i < 1000; i++ {
+//			go func(i int) {
+//				defer wg.Done()
+//				_, found := c.Get(strconv.Itoa(i))
+//				if found {
+//					//fmt.Println(i)
+//				}
+//			}(i)
+//		}
+//	}()
+//	wg.Wait()
+//	b.StopTimer()
+//}
 
 func getTestData() map[string]Item {
 	c := New(Config{

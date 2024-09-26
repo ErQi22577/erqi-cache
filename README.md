@@ -1,4 +1,9 @@
 # erqi-cache
+![License](https://img.shields.io/github/license/ErQi22577/erqi-cache.svg)
+![GitHub issues](https://img.shields.io/github/issues/ErQi22577/erqi-cache.svg)
+![GitHub release](https://img.shields.io/github/v/release/ErQi22577/erqi-cache.svg)
+![GitHub commit activity](https://img.shields.io/github/commit-activity/m/ErQi22577/erqi-cache)
+![GitHub last commit](https://img.shields.io/github/last-commit/ErQi22577/erqi-cache.svg)
 
 ## Overview
 An cache reconstructed and optimized based on [go-cache](https://github.com/patrickmn/go-cache). It uses sharding and atomic operations to reduce the scope of lock usage and improve concurrency. At the same time, it expands the original cleanupJanitor cleaning conditions (Maxbytes) and cleaning methods (LRU), adds an automatically saved janitor, and supports dynamic mounting of janitors. In addition, the OnExited method is added to ensure cache data security.

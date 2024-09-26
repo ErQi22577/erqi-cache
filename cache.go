@@ -62,6 +62,7 @@ func New(config Config) *Cache {
 	C := &Cache{c}
 
 	c.ll = &list.List{}
+	c.onEvicted = func(string, any) {}
 	c.defaultExpiration = config.DefaultExpiration
 
 	var m database
@@ -210,8 +211,8 @@ func (c *cache) Delete(k string) {
 
 		c.ll.Remove(item.Ele)
 		delete(sharedMap.m, k)
-		c.onEvicted(k, v.Load().(*Item).V)
 		sharedMap.Unlock()
+		c.onEvicted(k, v.Load().(*Item).V)
 	} else {
 		sharedMap.Unlock()
 		return

@@ -249,3 +249,6 @@ Create Cache with Config
 
 ## Author
 -**ErQi**-_Full Stack Developer_-[ErQi22577](https://github.com/ErQi22577)
+
+## Star History
+[![Star History Chart](https://api.star-history.com/svg?repos=ErQi22577/erqi-cache&type=Date)](https://star-history.com/#ErQi22577/erqi-cache&Date)

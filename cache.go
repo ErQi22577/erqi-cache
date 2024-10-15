@@ -47,15 +47,6 @@ type SharedMap struct {
 	sync.RWMutex
 }
 
-type Item struct {
-	V          any
-	Ele        *list.Element
-	IsDeleted  bool
-	Expiration int64
-	CreateTime int64
-	UpdateTime int64
-}
-
 // New create Cache with Config
 func New(config Config) *Cache {
 	c := &cache{}
@@ -165,16 +156,42 @@ func (c *cache) Flush() {
 	}
 }
 
-// Add k key, x value, d defaultExpiration(0:Never expire.).
-func (c *cache) Add(k string, x any, d time.Duration, overWrite bool) error {
+// Add k key, x value, d defaultExpiration(0:Never expire).
+func (c *cache) Add(k string, x any, d time.Duration) error {
 	sharedMap := c.GetShardMap(k)
 	sharedMap.Lock()
 
 	_, found := sharedMap.m[k]
-	if found && !overWrite {
+	if found {
 		sharedMap.Unlock()
 		return fmt.Errorf("Item %s already exists\n", k)
 	}
+
+	sharedMap.m[k] = &atomic.Value{}
+	mk := sharedMap.m[k]
+	sharedMap.Unlock()
+
+	ele := c.ll.PushFront(k)
+	sizeBefore := int(unsafe.Sizeof(sharedMap))
+	mk.Store(&Item{
+		V:          x,
+		Ele:        ele,
+		IsDeleted:  false,
+		Expiration: c.calExpiration(d),
+		CreateTime: time.Now().UnixNano(),
+		UpdateTime: time.Now().UnixNano(),
+	})
+	sizeAfter := int(unsafe.Sizeof(sharedMap))
+	c.nowBytes += sizeAfter - sizeBefore
+
+	return nil
+}
+
+// Set k key, x value, d defaultExpiration(0:Never expire).
+// If the key exists, it will be overwritten.
+func (c *cache) Set(k string, x any, d time.Duration) error {
+	sharedMap := c.GetShardMap(k)
+	sharedMap.Lock()
 
 	sharedMap.m[k] = &atomic.Value{}
 	mk := sharedMap.m[k]

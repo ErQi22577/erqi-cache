@@ -32,7 +32,7 @@ func main() {
 		MaxBytes:          0, // Max use memory(0 mean that default 16G).
 	})
 	
-	err := c.Add("key", "value", 0, false) // false Disable overwrite.
+	err := c.Add("key", "value", 0) // false Disable overwrite.
 	if err != nil {
 		fmt.Println(err)
     }
@@ -57,7 +57,7 @@ import (
 func main() {
 	// First, items must exist.
 	C := cache.New(chache.Config{})
-	_ = C.Add("key", "value", 0, false)
+	_ = C.Add("key", "value", 0)
 	items := C.Items()
 
 	// Set the cleanup interval and save interval, 
@@ -83,9 +83,16 @@ For more usage, see cache_test.
     
 ### Add
 ```go
-Add(k string, x any, d time.Duration, overWrite bool) error
+Add(k string, x any, d time.Duration) error
 ```
 k key, x value, d defaultExpiration(0:Never expire.).
+
+### Set
+```go
+Add(k string, x any, d time.Duration) error
+```
+k key, x value, d defaultExpiration(0:Never expire.).
+If the key exists, it will be overwritten.
 
 ### Delete
 ```go

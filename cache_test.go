@@ -2,7 +2,6 @@ package cache
 
 import (
 	"fmt"
-	goCache "github.com/patrickmn/go-cache"
 	"strconv"
 	"sync"
 	"testing"
@@ -49,19 +48,21 @@ func TestCache_Flush(t *testing.T) {
 func TestCache_Add(t *testing.T) {
 	t.Run("Add data to cache.", func(t *testing.T) {
 		c := getTestCache()
-		_ = c.Add("test1", "ok1", time.Duration(1)*time.Hour, false)
-		err := c.Add("test1", "ok2", time.Duration(1)*time.Hour, false)
+		_ = c.Add("test1", "ok1", time.Duration(1)*time.Hour)
+		err := c.Add("test1", "ok2", time.Duration(1)*time.Hour)
 		if err != nil {
 			fmt.Println(err)
 		}
 		fmt.Println(c.Get("test"))
 		c = nil
 	})
+}
 
-	t.Run("Add data to cache.(overwrite)", func(t *testing.T) {
+func TestCache_Set(t *testing.T) {
+	t.Run("Set data to cache.(overwrite)", func(t *testing.T) {
 		c := getTestCache()
-		_ = c.Add("test1", "ok1", time.Duration(1)*time.Hour, false)
-		err := c.Add("test1", "ok2", time.Duration(1)*time.Hour, true)
+		_ = c.Set("test1", "ok1", time.Duration(1)*time.Hour)
+		err := c.Set("test1", "ok2", time.Duration(1)*time.Hour)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -206,7 +207,7 @@ func TestCache_RunJanitor_StopJanitor(t *testing.T) {
 		fmt.Println(c.UnsafeGet("test"))
 		c.StopJanitor(Cleanup)
 		c.StopJanitor(Saving)
-		time.Sleep(1 * time.Minute)
+		//time.Sleep(1 * time.Minute)
 		c = nil
 	})
 }
@@ -216,11 +217,11 @@ func TestCache_OnEvicted_OnExited(t *testing.T) {
 		c := getTestCache()
 		c.OnEvicted(func(key string, value any) {
 			if key == "test" {
-				_ = c.Add("TEST", "success", 0, false)
+				_ = c.Add("TEST", "success", 0)
 			}
 		})
 		c.OnExited(func() {
-			_ = c.Add("TEST", "success", 0, true)
+			_ = c.Add("TEST", "success", 0)
 		}, true)
 		fmt.Println(c.Get("TEST"))
 		c.Delete("test")
@@ -244,9 +245,9 @@ func getTestCache() *Cache {
 		ShardCount:        0,
 		MaxBytes:          0,
 	})
-	_ = c.Add("test", "ok", 0, true)
-	_ = c.Add("test_int", 1, 0, true)
-	_ = c.Add("test_float", 1.1, 0, true)
+	_ = c.Add("test", "ok", 0)
+	_ = c.Add("test_int", 1, 0)
+	_ = c.Add("test_float", 1.1, 0)
 	return c
 }
 
@@ -261,7 +262,7 @@ func BenchmarkCache(b *testing.B) {
 			tmp := i
 			go func() {
 				defer wg.Done()
-				_ = c.Add(strconv.Itoa(tmp), "abcdefghijklmnopqrstuvwxyz", 0, false)
+				_ = c.Add(strconv.Itoa(tmp), "abcdefghijklmnopqrstuvwxyz", 0)
 			}()
 		}
 	}()
@@ -344,6 +345,6 @@ func getTestData() map[string]Item {
 		ShardCount:        2,
 		MaxBytes:          0,
 	})
-	_ = c.Add("test", "ok", 0, true)
+	_ = c.Add("test", "ok", 0)
 	return c.Items()
 }
